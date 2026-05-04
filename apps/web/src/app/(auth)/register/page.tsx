@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-client';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,15 +20,22 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name,
+        },
+      },
     });
 
-    if (signInError) {
-      setError(signInError.message === 'Invalid login credentials'
-        ? 'Correo o contraseña incorrectos'
-        : signInError.message);
+    if (signUpError) {
+      setError(
+        signUpError.message === 'User already registered'
+          ? 'Este correo ya está registrado'
+          : signUpError.message,
+      );
       setLoading(false);
       return;
     }
@@ -39,13 +47,31 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Iniciar sesión</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Accede a tu hogar para gestionar las tareas
+          Regístrate para gestionar las tareas de tu hogar
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Nombre
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Tu nombre"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          />
+        </div>
+
         <div>
           <label
             htmlFor="email"
@@ -75,9 +101,10 @@ export default function LoginPage() {
             id="password"
             type="password"
             required
+            minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="Mínimo 6 caracteres"
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
         </div>
@@ -115,18 +142,18 @@ export default function LoginPage() {
               />
             </svg>
           ) : (
-            'Entrar'
+            'Crear cuenta'
           )}
         </button>
       </form>
 
       <p className="text-center text-sm text-gray-500">
-        ¿No tienes cuenta?{' '}
+        ¿Ya tienes cuenta?{' '}
         <Link
-          href="/register"
+          href="/login"
           className="font-semibold text-gray-900 hover:underline"
         >
-          Regístrate
+          Inicia sesión
         </Link>
       </p>
     </div>

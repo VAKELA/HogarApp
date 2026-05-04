@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { TasksModule } from './tasks/tasks.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GatewayModule } from './gateway/gateway.module';
     TasksModule,
     CalendarModule,
     GatewayModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

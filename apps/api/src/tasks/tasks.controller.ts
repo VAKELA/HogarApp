@@ -38,6 +38,11 @@ export class TasksController {
     });
   }
 
+  @Get('today')
+  getTodayTasks(@Param('householdId') householdId: string, @Request() req: any) {
+    return this.tasksService.getTodayTasks(req.user.id, householdId);
+  }
+
   @Get(':taskId')
   findOne(@Param('taskId') taskId: string) {
     return this.tasksService.findOne(taskId);
@@ -69,6 +74,16 @@ export class TasksController {
     @Request() req: any,
   ) {
     return this.tasksService.updateInstance(instanceId, body, req.user.id);
+  }
+
+  @Patch('instances/:instanceId/complete')
+  completeInstance(@Param('instanceId') instanceId: string, @Request() req: any) {
+    return this.tasksService.updateInstance(instanceId, { status: 'COMPLETED' }, req.user.id);
+  }
+
+  @Patch('instances/:instanceId/skip')
+  skipInstance(@Param('instanceId') instanceId: string, @Request() req: any) {
+    return this.tasksService.updateInstance(instanceId, { status: 'SKIPPED' }, req.user.id);
   }
 
   // Task Assignments
