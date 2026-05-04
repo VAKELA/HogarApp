@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Household ───────────────────────────────────────────
+
+model Household {
+  id         String   @id @default(uuid())
+  name       String
+  inviteCode String   @unique @default(cuid())
+  timezone   String   @default("America/Santiago")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  members    User[]
+  tasks      TaskDefinition[]
+  rules      Rule[]
+  proposals  Proposal[]
+
+  @@map("households")
+}
+
+// ─── User ─────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  supabaseId   String   @unique
+  email        String   @unique
+  name         String
+  avatarUrl    String?
+  role         UserRole @default(MEMBER)
+  householdId  String
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  taskAssignments TaskAssignment[]
+  barterOffers    BarterOffer[]
+  completedInstances TaskInstance[] @relation("CompletedBy")
+
+  @@map("users")
+}
+
+// ─── Task Definition ──────────────────────────────────────
+
+enum TaskCategory {
+  COOKING
+  CLEANING
+  SHOPPING
+  MAINTENANCE
+  ORGANIZATION
+  OTHER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model TaskDefinition {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  category    TaskCategory  @default(OTHER)
+  priority    TaskPriority  @default(MEDIUM)
+  householdId String
+  household   Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  // Recurrencia
+  isRecurring      Boolean  @default(false)
+  recurrencePattern String?
+
+  // Para tareas one-off
+  dueDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  instances    TaskInstance[]
+  assignments  TaskAssignment[]
+
+  @@map("task_definitions")
+}
+
+// ─── Task Instance ────────────────────────────────────────
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+model TaskInstance {
+  id           String       @id @default(uuid())
+  taskDefId    String
+  taskDef      TaskDefinition @relation(fields: [taskDefId], references: [id], onDelete: Cascade)
+  date         DateTime
+  status       TaskStatus   @default(PENDING)
+  completedAt  DateTime?
+  completedById String?
+  completedBy  User?        @relation("CompletedBy", fields: [completedById], references: [id])
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([taskDefId, date])
+  @@map("task_instances")
+}
+
+// ─── Task Assignment ──────────────────────────────────────
+
+model TaskAssignment {
+  id         String         @id @default(uuid())
+  taskDefId  String
+  taskDef    TaskDefinition @relation(fields: [taskDefId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int?
+  order      Int?
+  createdAt  DateTime       @default(now())
+
+  @@unique([taskDefId, userId, dayOfWeek])
+  @@map("task_assignments")
+}
+
+// ─── Barter Offer (Phase 2) ──────────────────────────────
+
+enum BarterStatus {
+  OPEN
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
+
+model BarterOffer {
+  id           String      @id @default(uuid())
+  offeredBy    String
+  offeredTask  String
+  wantedTask   String
+  status       BarterStatus @default(OPEN)
+  householdId  String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user User @relation(fields: [offeredBy], references: [id], onDelete: Cascade)
+
+  @@map("barter_offers")
+}
+
+// ─── Rule (Phase 3) ──────────────────────────────────────
+
+enum RuleStatus {
+  PROPOSED
+  ACTIVE
+  REMOVED
+}
+
+enum RuleCategory {
+  COEXISTENCE
+  CLEANING
+  SCHEDULES
+  VISITS
+  OTHER
+}
+
+model Rule {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  category    RuleCategory @default(OTHER)
+  status      RuleStatus   @default(PROPOSED)
+  proposedBy  String
+  householdId String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@map("rules")
+}
+
+// ─── Proposal (Phase 3) ──────────────────────────────────
+
+enum ProposalStatus {
+  PROPOSED
+  VOTING
+  APPROVED
+  REJECTED
+  IN_EXECUTION
+  COMPLETED
+}
+
+enum ProposalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Proposal {
+  id           String           @id @default(uuid())
+  title        String
+  description String?
+  estimatedCost Decimal?
+  priority     ProposalPriority @default(MEDIUM)
+  status       ProposalStatus   @default(PROPOSED)
+  householdId  String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@map("proposals")
+}
